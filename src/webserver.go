@@ -125,6 +125,7 @@ func main() {
 
 		// TeslaMateApi /api/v1 endpoints
 		v1 := api.Group("/v1")
+		v1.Use(authTokenMiddleware())
 		{
 			// TeslaMateApi /api/v1 root
 			v1.GET("/", func(c *gin.Context) {

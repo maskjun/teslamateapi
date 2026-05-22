@@ -49,6 +49,7 @@ services:
       - DATABASE_HOST=database
       - MQTT_HOST=mosquitto
       - TZ=Europe/Berlin
+      - API_TOKEN=replace-with-at-least-32-characters
     ports:
       - 8080:8080
 ```
@@ -70,6 +71,7 @@ services:
       - DATABASE_HOST=database
       - MQTT_HOST=mosquitto
       - TZ=${TM_TZ}
+      - API_TOKEN=${TM_API_TOKEN}
     labels:
       - "traefik.enable=true"
       - "traefik.port=8080"
@@ -101,6 +103,7 @@ Basically the same environment variables for the database, mqqt and timezone nee
 | **ENCRYPTION_KEY** | string |                 |
 | **MQTT_HOST**      | string | _mosquitto_     |
 | **TZ**             | string | _Europe/Berlin_ |
+| **API_TOKEN**      | string |                 |
 
 **Optional** environment variables
 
@@ -109,8 +112,7 @@ Basically the same environment variables for the database, mqqt and timezone nee
 | **TESLAMATE_SSL**             | boolean | _false_                       |
 | **TESLAMATE_HOST**            | string  | _teslamate_                   |
 | **TESLAMATE_PORT**            | string  | _4000_                        |
-| **API_TOKEN**                 | string  |                               |
-| **API_TOKEN_DISABLE**         | string  | _false_                       |
+| **API_TOKEN_DISABLE**         | boolean | _false_                       |
 | **DATABASE_PORT**             | integer | _5432_                        |
 | **DATABASE_TIMEOUT**          | integer | _60000_                       |
 | **DATABASE_SSL**              | string  | _disable_                     |
@@ -192,7 +194,7 @@ More detailed documentation of every endpoint will come..
 
 ### Authentication
 
-If you want to use command or logging endpoints such as `/api/v1/cars/:CarID/command/:Command`, `/api/v1/cars/:CarID/wake_up`, or `/api/v1/cars/:CarID/logging/:Command` you need to add authentication to your request.
+All `/api/v1` endpoints require authentication by default.
 
 You need to specify a token yourself (called **API_TOKEN**) in the environment variables file, to set it. The token has the requirement to be a minimum of 32 characters long.
 
@@ -232,7 +234,7 @@ The data that is accessible is data like the cars, charges, drives, current stat
 
 Also, apply some authentication on your webserver in front of the container, so your data is not unprotected and too exposed. In the example above, we use the same .htpasswd file as used by TeslaMate.
 
-If you have applied a level of authentication in front of the container `API_TOKEN_DISABLE=true` will allow commands without requiring the header or uri token value. But even then it's always rekommended to use an apikey.
+If you have applied a level of authentication in front of the container `API_TOKEN_DISABLE=true` will allow API calls without requiring the header or uri token value. But even then it's always rekommended to use an apikey.
 
 ## Credits
 

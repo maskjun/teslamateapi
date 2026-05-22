@@ -2,10 +2,13 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 )
+
+const minAuthTokenLength = 32
 
 var (
 	// defining envToken that contains API_TOKEN value
@@ -18,10 +21,23 @@ func initAuthToken() {
 	envToken = getEnv("API_TOKEN", "")
 	if envToken == "" {
 		log.Println("[warning] initAuthToken - environment variable API_TOKEN not set or is empty.")
-	} else if len(envToken) < 32 {
+	} else if len(envToken) < minAuthTokenLength {
 		log.Println("[warning] initAuthToken - environment variable API_TOKEN too short.. should be 32 or longer.")
 	} else {
 		log.Println("[info] initAuthToken - environment variable API_TOKEN is set and good.")
+	}
+}
+
+// authTokenMiddleware validates requests before they reach protected endpoint handlers.
+func authTokenMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		validToken, errorMessage := validateAuthToken(c)
+		if !validToken {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": errorMessage})
+			return
+		}
+
+		c.Next()
 	}
 }
 
@@ -41,19 +57,20 @@ func validateAuthToken(c *gin.Context) (bool, string) {
 	if len(reqHeaderToken) > 0 {
 
 		// removing Bearer part from header to get token out of header
-		splitToken := strings.Split(reqHeaderToken, "Bearer")
+		authScheme, token, found := strings.Cut(reqHeaderToken, " ")
+		token = strings.TrimSpace(token)
 
-		if len(splitToken) != 2 {
+		if !found || !strings.EqualFold(authScheme, "Bearer") {
 			// bearer token is not proper formatted.. returning bad request
 			log.Println("[info] validateAuthToken - header authorization bearer token is not proper formatted.. returning 401")
 			return false, "header authorization bearer token is not proper formatted"
 
-		} else if strings.TrimSpace(splitToken[1]) == "" {
+		} else if token == "" {
 			// bearer token is empty string.. we'll return unauthorized
 			log.Println("[info] validateAuthToken - header authorization bearer token is empty.. returning 401")
 			return false, "header authorization bearer token is empty"
 
-		} else if checkAuthToken(strings.TrimSpace(splitToken[1])) {
+		} else if checkAuthToken(token) {
 			// the bearer token is valid!
 			log.Println("[debug] validateAuthToken - header authorization bearer token valid.")
 			return true, ""
@@ -93,6 +110,10 @@ func checkAuthToken(token string) bool {
 		// check that envToken was longer than zero
 		if len(envToken) == 0 {
 			log.Println("[warning] checkAuthToken - returning false (API_TOKEN is not set or empty)")
+			return false
+		}
+		if len(envToken) < minAuthTokenLength {
+			log.Println("[warning] checkAuthToken - returning false (API_TOKEN is shorter than 32 characters)")
 			return false
 		}
 		log.Println("[info] checkAuthToken - returning true")
